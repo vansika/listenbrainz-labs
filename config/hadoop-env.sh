@@ -14,23 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Set Hadoop-specific environment variables here.
-
-# The only required environment variable is JAVA_HOME.  All others are
-# optional.  When running a distributed configuration it is best to
-# set JAVA_HOME in this file, so that it is correctly defined on
-# remote nodes.
-
-# The java implementation to use.
-export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
-
-# The jsvc implementation to use. Jsvc is required to run secure datanodes
-# that bind to privileged ports to provide authentication of data transfer
-# protocol.  Jsvc is not required if SASL is configured for authentication of
-# data transfer protocol using non-privileged ports.
-#export JSVC_HOME=${JSVC_HOME}
-
-export HADOOP_CONF_DIR=${HADOOP_CONF_DIR:-"/etc/hadoop"}
+export JAVA_HOME="/srv/java/jdk"
+export HADOOP_CONF_DIR=${HADOOP_CONF_DIR:-"$HADOOP_HOME/etc/hadoop"}
 
 # Extra Java CLASSPATH elements.  Automatically insert capacity-scheduler.
 for f in $HADOOP_HOME/contrib/capacity-scheduler/*.jar; do

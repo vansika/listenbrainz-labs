@@ -1,12 +1,13 @@
 #!/bin/bash
 
-echo -e "\n"
+. /root/hadoop-env.sh
 
+# starting SSH
+echo "start SSH"
+service ssh start
+
+echo "start HDFS"
 $HADOOP_HOME/sbin/start-dfs.sh
 
-echo -e "\n"
-
+echo "start Yarn"
 $HADOOP_HOME/sbin/start-yarn.sh
-
-echo -e "\n"
-
