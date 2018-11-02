@@ -11,3 +11,5 @@ $HADOOP_HOME/sbin/start-dfs.sh
 
 echo "start Yarn"
 $HADOOP_HOME/sbin/start-yarn.sh
+
+while :; do sleep 1000; done

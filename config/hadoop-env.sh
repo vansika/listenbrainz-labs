@@ -16,6 +16,7 @@
 
 export JAVA_HOME="/srv/java/jdk"
 export HADOOP_CONF_DIR=${HADOOP_CONF_DIR:-"$HADOOP_HOME/etc/hadoop"}
+export HADOOP_PID_DIR="/tmp"
 
 # Extra Java CLASSPATH elements.  Automatically insert capacity-scheduler.
 for f in $HADOOP_HOME/contrib/capacity-scheduler/*.jar; do

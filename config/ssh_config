@@ -1,8 +1,10 @@
 Host localhost
-  StrictHostKeyChecking no
+   StrictHostKeyChecking no
+   SendEnv=JAVA_HOME
 
 Host 0.0.0.0
   StrictHostKeyChecking no
+   SendEnv=JAVA_HOME
   
 Host hadoop-*
    StrictHostKeyChecking no

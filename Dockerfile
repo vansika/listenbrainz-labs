@@ -2,10 +2,8 @@ FROM airdock/oracle-jdk:jdk-8u112
 
 WORKDIR /root
 
-RUN useradd --create-home --shell /bin/bash hadoop
-
 # install openssh-server and wget
-RUN apt-get update && apt-get install -y openssh-server wget
+RUN apt-get update && apt-get install -y openssh-server wget runit
 
 # install hadoop 2.7.7
 RUN wget http://apache.rediris.es/hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz && \
@@ -40,8 +38,12 @@ RUN chmod +x /root/start-hadoop.sh && \
     chmod +x $HADOOP_HOME/sbin/start-yarn.sh && \
     echo "AcceptEnv JAVA_HOME" >> /etc/ssh/sshd_config
 
+#setup runit
+#RUN mkdir -p /etc/service/hadoop
+#COPY ./your_app/run /etc/service/your_app/run
 
 # format namenode
 RUN /usr/local/hadoop/bin/hdfs namenode -format
 
 CMD [ "sh", "/root/start-hadoop.sh"]
+
