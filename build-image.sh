@@ -3,6 +3,6 @@
 echo ""
 
 echo -e "\nbuild docker hadoop image\n"
-docker build -t metabrainz/hadoop:beta .
+docker build -t metabrainz/hadoop-yarn:beta .
 
 echo ""

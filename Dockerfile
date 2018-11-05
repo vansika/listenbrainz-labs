@@ -1,49 +1,37 @@
-FROM airdock/oracle-jdk:jdk-8u112
+FROM phusion/baseimage:0.11
 
 WORKDIR /root
 
-# install openssh-server and wget
-RUN apt-get update && apt-get install -y openssh-server wget runit
+RUN useradd --create-home --shell /bin/bash hadoop
 
-# install hadoop 2.7.7
-RUN wget http://apache.rediris.es/hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz && \
-    tar -xzvf hadoop-2.7.7.tar.gz && \
-    mv hadoop-2.7.7 /usr/local/hadoop && \
-    rm hadoop-2.7.7.tar.gz
+RUN apt-get update && apt-get install -y wget runit openjdk-11-jdk-headless
+
+# install hadoop 3.1.1
+RUN wget http://apache.rediris.es/hadoop/common/hadoop-3.1.1/hadoop-3.1.1.tar.gz && \
+    tar -xzvf hadoop-3.1.1.tar.gz && \
+    mv hadoop-3.1.1 /usr/local/hadoop && \
+    rm hadoop-3.1.1.tar.gz
 
 # set environment variable
+ENV JAVA_HOME="/usr"
 ENV HADOOP_HOME=/usr/local/hadoop 
 ENV PATH=$PATH:/usr/local/hadoop/bin:/usr/local/hadoop/sbin 
-
-# generate shh keys
-RUN ssh-keygen -t rsa -f ~/.ssh/id_rsa -P '' && \
-    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 
 RUN mkdir -p ~/hdfs/namenode && \ 
     mkdir -p ~/hdfs/datanode && \
     mkdir $HADOOP_HOME/logs
 
 COPY config/* /tmp/
-RUN mv /tmp/ssh_config ~/.ssh/config && \
-    mv /tmp/hadoop-env.sh /root/hadoop-env.sh && \
+RUN mv /tmp/hadoop-env.sh $HADOOP_HOME/etc/hadoop/hadoop-env.sh && \
     mv /tmp/hdfs-site.xml $HADOOP_HOME/etc/hadoop/hdfs-site.xml && \ 
     mv /tmp/core-site.xml $HADOOP_HOME/etc/hadoop/core-site.xml && \
-    mv /tmp/mapred-site.xml $HADOOP_HOME/etc/hadoop/mapred-site.xml && \
-    mv /tmp/yarn-site.xml $HADOOP_HOME/etc/hadoop/yarn-site.xml && \
-    mv /tmp/slaves $HADOOP_HOME/etc/hadoop/slaves && \
-    mv /tmp/start-hadoop.sh ~/start-hadoop.sh 
-
-RUN chmod +x /root/start-hadoop.sh && \
-    chmod +x $HADOOP_HOME/sbin/start-dfs.sh && \
-    chmod +x $HADOOP_HOME/sbin/start-yarn.sh && \
-    echo "AcceptEnv JAVA_HOME" >> /etc/ssh/sshd_config
+    mv /tmp/yarn-site.xml $HADOOP_HOME/etc/hadoop/yarn-site.xml 
 
 #setup runit
-#RUN mkdir -p /etc/service/hadoop
-#COPY ./your_app/run /etc/service/your_app/run
+RUN mkdir -p /etc/service/dfs #/etc/service/yarn
+COPY config/dfs.service /etc/service/dfs/run
+#COPY config/yarn.service /etc/service/yarn/run
+RUN chmod +x /etc/service/*/run
 
 # format namenode
-RUN /usr/local/hadoop/bin/hdfs namenode -format
-
-CMD [ "sh", "/root/start-hadoop.sh"]
-
+RUN /usr/local/hadoop/bin/hdfs namenode -format 
