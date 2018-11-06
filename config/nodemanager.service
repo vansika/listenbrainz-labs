@@ -1,0 +1,6 @@
+#!/bin/bash
+
+. /usr/local/hadoop/etc/hadoop/hadoop-env.sh
+
+echo "start nodemanager"
+$HADOOP_HOME/bin/yarn --config $HADOOP_HOME/etc/hadoop nodemanager
