@@ -18,6 +18,8 @@
 # Set Hadoop-specific environment variables here.
 
 JAVA_HOME=/usr
+YARN_RESOURCEMANAGER_USER=hadoop
+YARN_NODEMANAGER_USER=hadoop
 
 ##
 ## THIS FILE ACTS AS THE MASTER FILE FOR ALL HADOOP PROJECTS.

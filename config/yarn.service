@@ -2,5 +2,5 @@
 
 . /usr/local/hadoop/etc/hadoop/hadoop-env.sh
 
-echo "start Yarn"
+echo "start yarn"
 $HADOOP_HOME/sbin/start-yarn.sh
