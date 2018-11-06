@@ -28,7 +28,7 @@ COPY config/* /tmp/
 RUN mv /tmp/hadoop-env.sh $HADOOP_HOME/etc/hadoop/hadoop-env.sh && \
     mv /tmp/hdfs-site.xml $HADOOP_HOME/etc/hadoop/hdfs-site.xml && \ 
     mv /tmp/core-site.xml $HADOOP_HOME/etc/hadoop/core-site.xml && \
-    mv /tmp/yarn-site.xml $HADOOP_HOME/etc/hadoop/yarn-site.xml 
+    mv /tmp/yarn-site.xml.tmpl $HADOOP_HOME/etc/hadoop/yarn-site.xml.tmpl 
 
 #setup runit
 RUN mkdir -p /etc/service/dfs /etc/service/resourcemanager /etc/service/nodemanager

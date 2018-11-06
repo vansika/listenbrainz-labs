@@ -2,5 +2,11 @@
 
 . /usr/local/hadoop/etc/hadoop/hadoop-env.sh
 
-echo "start HDFS"
-hdfs namenode
+if [[ "$CONTAINER_NAME}" == *"master"* ]];
+then
+    echo "start HDFS namenode"
+    exec hdfs namenode
+else
+    echo "start HDFS datanode"
+    exec hdfs datanode
+fi

@@ -2,5 +2,7 @@
 
 . /usr/local/hadoop/etc/hadoop/hadoop-env.sh
 
+cat $HADOOP_HOME/etc/hadoop/yarn-site.xml.tmpl | sed -e "s/%HOSTNAME%/$HOSTNAME/g" > $HADOOP_HOME/etc/hadoop/yarn-site.xml
+
 echo "start nodemanager"
 $HADOOP_HOME/bin/yarn --config $HADOOP_HOME/etc/hadoop nodemanager
