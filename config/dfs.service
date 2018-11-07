@@ -2,7 +2,7 @@
 
 . /usr/local/hadoop/etc/hadoop/hadoop-env.sh
 
-if [[ "$CONTAINER_NAME}" == *"master"* ]];
+if [[ "$HOSTNAME}" == *"master"* ]];
 then
     echo "start HDFS namenode"
     exec hdfs namenode
