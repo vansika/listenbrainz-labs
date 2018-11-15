@@ -4,7 +4,7 @@ WORKDIR /root
 
 RUN useradd --create-home --shell /bin/bash hadoop
 
-RUN apt-get update && apt-get install -y wget runit openjdk-8-jdk-headless net-tools
+RUN apt-get update && apt-get install -y wget runit openjdk-8-jdk-headless net-tools iputils-ping
 
 # install hadoop 3.1.1
 RUN wget http://apache.rediris.es/hadoop/common/hadoop-3.1.1/hadoop-3.1.1.tar.gz && \

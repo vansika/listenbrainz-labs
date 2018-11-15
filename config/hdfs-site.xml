@@ -13,6 +13,26 @@
         <value>0.0.0.0</value>
     </property>
     <property>
+        <name>dfs.namenode.https-bind-host</name>
+        <value>0.0.0.0</value>
+    </property>
+    <property>
+        <name>dfs.datanode.address</name>
+        <value>0.0.0.0:9866</value>
+    </property>
+    <property>
+        <name>dfs.datanode.http.address</name>
+        <value>0.0.0.0:9864</value>
+    </property>
+    <property>
+        <name>dfs.datanode.ipc.address</name>
+        <value>0.0.0.0:9867</value>
+    </property>
+    <property>
+        <name>dfs.namenode.http-address</name>
+        <value>0.0.0.0:9870</value>
+    </property>
+    <property>
         <name>dfs.namenode.name.dir</name>
         <value>file:///home/hadoop/hdfs/namenode</value>
         <description>NameNode directory for namespace and transaction logs storage.</description>
