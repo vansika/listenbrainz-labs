@@ -1,1 +1,16 @@
+DEBUG = True
+
+
 HDFS_NAMENODE_URI = 'http://hadoop-master:9870'
+
+# RabbitMQ
+RABBITMQ_HOST = 'rabbitmq'
+RABBITMQ_PORT = 5672
+RABBITMQ_USERNAME = 'guest'
+RABBITMQ_PASSWORD = 'guest'
+RABBITMQ_VHOST = '/'
+
+
+# RabbitMQ exchanges and queues
+INCOMING_EXCHANGE = 'incoming'
+INCOMING_QUEUE = 'incoming'

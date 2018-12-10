@@ -16,7 +16,8 @@ RUN apt-get install -y --no-install-recommends \
     python3-dev \
     python3-pip \
     xz-utils \
-    pxz
+    pxz \
+    git
 
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
