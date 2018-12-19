@@ -6,11 +6,11 @@ RUN useradd --create-home --shell /bin/bash hadoop
 
 RUN apt-get update && apt-get install -y wget runit openjdk-8-jdk-headless net-tools iputils-ping
 
-# install hadoop 3.1.1
-RUN wget http://apache.rediris.es/hadoop/common/hadoop-3.1.1/hadoop-3.1.1.tar.gz && \
-    tar -xzvf hadoop-3.1.1.tar.gz && \
-    mv hadoop-3.1.1 /usr/local/hadoop && \
-    rm hadoop-3.1.1.tar.gz
+# install hadoop 2.7.7
+RUN wget http://apache.rediris.es/hadoop/common/hadoop-2.7.7/hadoop-2.7.7.tar.gz && \
+    tar -xzvf hadoop-2.7.7.tar.gz && \
+    mv hadoop-2.7.7 /usr/local/hadoop && \
+    rm hadoop-2.7.7.tar.gz
 
 # set environment variable
 ENV JAVA_HOME="/usr"
