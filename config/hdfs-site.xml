@@ -17,24 +17,24 @@
         <value>0.0.0.0</value>
     </property>
     <property>
-        <name>dfs.namenode.http-bind-host</name>
-        <value>0.0.0.0</value>
-    </property>
-    <property>
         <name>dfs.datanode.address</name>
-        <value>0.0.0.0:50010</value> <!-- 9866 -->
-    </property>
-    <property>
-        <name>dfs.datanode.ipc.address</name>
-        <value>0.0.0.0:50020</value> <!-- 9867 -->
-    </property>
-    <property>
-        <name>dfs.namenode.http-address</name>
-        <value>0.0.0.0:50070</value> <!-- 9870 -->
+        <value>0.0.0.0:9866</value>
     </property>
     <property>
         <name>dfs.datanode.http.address</name>
-        <value>0.0.0.0:50075</value> <!-- 9864 -->
+        <value>0.0.0.0:9864</value>
+    </property>
+    <property>
+        <name>dfs.datanode.ipc.address</name>
+        <value>0.0.0.0:9867</value>
+    </property>
+    <property>
+        <name>dfs.namenode.http-address</name>
+        <value>0.0.0.0:9870</value>
+    </property>
+    <property>
+        <name>dfs.namenode.http-bind-host</name>
+        <value>0.0.0.0</value>
     </property>
     <property>
         <name>dfs.namenode.name.dir</name>
