@@ -13,18 +13,16 @@ def main():
     print(df.columns)
     print(df.count())
     print("Dataframe loaded in %.2f s!" % (time.time() - t0))
-    df.createOrReplaceTempView('listen')
+    df.registerTempTable('listen')
     print("Running Query...")
     query_t0 = time.time()
-    playcounts_df = listenbrainz_spark.session.sql("""
-            SELECT user_name,
-                   track_name,
-                   count(track_name) as count,
+    playcounts_df = listenbrainz_spark.sql_context.sql("""
+            SELECT user_name, track_name, count(track_name) as cnt
               FROM listen
              WHERE user_name = '%s'
           GROUP BY user_name, track_name
-          ORDER BY count DESC
-             LIMIT 100
+          ORDER BY cnt DESC
+             LIMIT 20
         """ % user_name)
     print("Executed query in %.2f s" % (time.time() - query_t0))
     playcounts_df.show()
