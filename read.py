@@ -1,6 +1,29 @@
 import sys
-from listenbrainz_spark import sqlContext
+import listenbrainz_spark
+import time
+
+
+def main():
+    listenbrainz_spark.init_spark_session(app_name=sys.argv[1])
+    user_name = input('Enter the user name:')
+    t0 = time.time()
+    df = sqlContext.read.parquet('hdfs://hadoop-master.spark-network:9000/data/listenbrainz/2018/12.parquet')
+    print("Dataframe loaded in %.2f s" % (time.time() - t0))
+    df.createOrReplaceTempView('listen')
+    query_t0 = time.time()
+    playcounts_df = listenbrainz_spark.session.sql("""
+            SELECT user_name,
+                   track_name,
+                   count(track_name) as count,
+              FROM listen
+             WHERE user_name = %s
+          GROUP BY user_name, track_name
+          ORDER BY count DESC
+             LIMIT 100
+        """ % user_name)
+    print("Executed query in %.2f s" % (time.time() - query_t0))
+    playcounts_df.show()
+
 
 if __name__ == '__main__':
-    df = sqlContext.read.parquet('hdfs://hadoop-master.spark-network:9000/data/listenbrainz/2017/12.parquet')
-    print(df.count())
+    main()
