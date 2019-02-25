@@ -10,7 +10,6 @@ from listenbrainz_spark.stats_writer.stats_writer import StatsWriter
 from listenbrainz_spark import config
 from listenbrainz_spark.stats import run_query
 
-data = defaultdict(dict)
 
 def get_artists(table):
     """
@@ -39,10 +38,6 @@ def get_artists(table):
             'artist_mbids': row.artist_mbids,
             'listen_count': row.cnt,
         })
-    for user_name, artist_stats in artists.items():
-        data[user_name]['artists'] = {}
-        data[user_name]['artists']['artist_stats'] = artist_stats
-        data[user_name]['artists']['artist_count'] = len(artist_stats)
     query_t0 = time.time()
     print("Query to calculate artist stats processed in %.2f s" % (query_t0 - t0))
 
@@ -58,9 +53,15 @@ def get_recordings(table):
                  , track_name
                  , recording_msid
                  , recording_mbid
+                 , artist_name
+                 , artist_msid
+                 , artist_mbids
+                 , release_name
+                 , release_msid
+                 , release_mbid
                  , count(recording_msid) as cnt
               FROM %s
-          GROUP BY user_name, track_name, recording_msid, recording_mbid
+          GROUP BY user_name, track_name, recording_msid, recording_mbid, artist_name, artist_msid, artist_mbids, release_name, release_msid, release_mbid
           ORDER BY cnt DESC
         """ % (table))
     t = time.time()
@@ -72,11 +73,14 @@ def get_recordings(table):
             'track_name': row.track_name,
             'recording_msid': row.recording_msid,
             'recording_mbid': row.recording_mbid,
+            'artist_name': row.artist_name,
+            'artist_msid': row.artist_msid,
+            'artist_mbids': row.artist_mbids,
+            'release_name': row.release_name,
+            'release_msid': row.release_msid,
+            'release_mbid': row.release_mbid,
             'listen_count': row.cnt,
         })
-    for user_name, recording_stats in recordings.items():
-        data[user_name]['recordings'] = {}
-        data[user_name]['recordings'] = recording_stats
     query_t0 = time.time()
     print("Query to calculate artist stats processed in %.2f s" % (query_t0 - t0))
 
@@ -91,9 +95,12 @@ def get_releases(table):
                  , release_name
                  , release_msid
                  , release_mbid
+                 , artist_name
+                 , artist_msid
+                 , artist_mbids
                  , count(release_msid) as cnt
               FROM %s
-          GROUP BY user_name, release_name, release_msid, release_mbid
+          GROUP BY user_name, release_name, release_msid, release_mbid, artist_name, artist_msid, artist_mbids
           ORDER BY cnt DESC
         """ % (table))
     releases = defaultdict(list)
@@ -106,11 +113,11 @@ def get_releases(table):
             'release_name': row.release_name,
             'release_msid': row.release_msid,
             'release_mbid': row.release_mbid,
+            'artist_name': row.artist_name,
+            'artist_msid': row.artist_msid,
+            'artist_mbids': row.artist_mbids,
             'listen_count': row.cnt,
         })
-    for user_name, release_stats in releases.items():
-        data[user_name]['releases'] = {}
-        data[user_name]['releases'] = release_stats
     query_t0 = time.time()
     print("Query to calculate artist stats processed in %.2f s" % (query_t0 - t0))
 
@@ -161,9 +168,19 @@ def main(app_name):
     print("DataFrame loaded in %.2f s" % (query_t0 - t0))
     users = get_users(table)
     print("Number of users: %d" % len(users))
-    get_artists(table)
-    get_recordings(table)
-    get_releases(table)
+    data = defaultdict(dict)
+    artist_data = get_artists(table)
+    for user_name, artist_stats in artist_data.items():
+        data[user_name]['artists'] = {
+            'artist_stats': artist_stats,
+            'artist_count': len(artist_stats),
+        }
+    recording_data = get_recordings(table)
+    for user_name, recording_stats in recording_data.items():
+        data[user_name]['recordings'] = recording_stats
+    release_data = get_releases(table)
+    for user_name, release_stats in release_data.items():
+        data[user_name]['releases'] = release_stats
     rabbbitmq_conn_obj = StatsWriter()
     yearmonth = datetime.strftime(date, '%Y-%m')
     for user_name, metadata in data.items():
@@ -171,5 +188,3 @@ def main(app_name):
         rabbitmq_data = {}
         rabbitmq_data[user_name] = metadata
         rabbbitmq_conn_obj.start(rabbitmq_data)
-
-    
