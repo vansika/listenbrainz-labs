@@ -40,6 +40,7 @@ def get_artists(table):
         })
     query_t0 = time.time()
     print("Query to calculate artist stats processed in %.2f s" % (query_t0 - t0))
+    return artists
 
 
 def get_recordings(table):
@@ -83,6 +84,7 @@ def get_recordings(table):
         })
     query_t0 = time.time()
     print("Query to calculate artist stats processed in %.2f s" % (query_t0 - t0))
+    return recordings
 
 def get_releases(table):
     """
@@ -120,7 +122,7 @@ def get_releases(table):
         })
     query_t0 = time.time()
     print("Query to calculate artist stats processed in %.2f s" % (query_t0 - t0))
-
+    return releases
 
 def get_users(table):
     """ DataFrame is registered as a temporary table
@@ -185,6 +187,8 @@ def main(app_name):
     yearmonth = datetime.strftime(date, '%Y-%m')
     for user_name, metadata in data.items():
         data[user_name]['yearmonth'] = yearmonth
-        rabbitmq_data = {}
-        rabbitmq_data[user_name] = metadata
+        rabbitmq_data = {
+            'type' : 'user',
+            user_name : metadata
+        }
         rabbbitmq_conn_obj.start(rabbitmq_data)
