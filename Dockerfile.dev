@@ -23,6 +23,7 @@ RUN cd /usr/local && \
     tar xzf spark-2.3.1-bin-hadoop2.7.tgz && \
     ln -s spark-2.3.1-bin-hadoop2.7 spark
 
+RUN apt-get install -y python3-numpy
 COPY requirements.txt /rec/requirements.txt
 RUN pip3 install -r requirements.txt
 
