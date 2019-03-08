@@ -1,11 +1,9 @@
 import listenbrainz_spark
 from listenbrainz_spark import config
-from setup import spark
-from pyspark.sql import Row
-
+from pyspark.sql import Row, SparkSession
 from datetime import datetime
 import os, sys
-
+import train_models
 
 def prepare_user_data(table):
     users_q = spark.sql("""
@@ -65,21 +63,18 @@ def get_playcounts_data(listens_df, users_df, recordings_df):
     return playcounts_df
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("Usage: python create_datafreames.py [data_dir]")
-        sys.exit(0)
     listenbrainz_spark.init_spark_session('Create_Dataframe')
+    spark = SparkSession.builder.getOrCreate()
     date = datetime.utcnow()
     df = None
     for y in range(2005, date.year+1):
         for m in range(1, 13):
             try:
-                month = listenbrainz_spark.sql_context.read.parquet('{}/data/listenbrainz/{}/{}.parquet'.format(config.HDFS_CLUSTER_URI, y, m))
+                month = spark.read.parquet('{}/data/listenbrainz/{}/{}.parquet'.format(config.HDFS_CLUSTER_URI, y, m))
                 df = df.union(month) if df else month
             except:
                 print("No listens for {}/{}".format(m,y))
                 continue
-    df_directory = sys.argv[1]
     df.printSchema()
     print("Registering Dataframe...")
 
@@ -94,17 +89,9 @@ if __name__ == '__main__':
     recordings_df = prepare_recording_data(table)
     print("Get playcounts...")
     playcounts_df = get_playcounts_data(listens_df, users_df, recordings_df)
+    train_models.main(playcounts_df)
 
-    # persist all dfs
-    print("Persist users...")
-    users_df.write.format("parquet").save(os.path.join(df_directory, "user.parquet"))
-    print("Persist listens...")
-    listens_df.write.format("parquet").save(os.path.join(df_directory, "listen.parquet"))
-    print("Persist recordings...")
-    recordings_df.write.format("parquet").save(os.path.join(df_directory, "recording.parquet"))
-    print("Persist playcounts...")
-    playcounts_df.write.format("parquet").save(os.path.join(df_directory, "playcount.parquet"))
-
+   
     
 
 

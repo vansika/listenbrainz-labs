@@ -1,15 +1,17 @@
 import itertools
 import os
 import sys
-import ujson
-import utils
+import json
+import tempfile
 
 from collections import namedtuple
 from math import sqrt
 from operator import add
 from pyspark.mllib.recommendation import ALS, Rating
-from pyspark.sql import Row
-from setup import spark, sc
+from pyspark.sql import Row, SparkSession
+from pyspark import SparkContext
+from datetime import datetime
+from listenbrainz_spark import hdfs_connection, config
 
 Model = namedtuple('Model', 'model error rank lmbda iteration')
 
@@ -22,14 +24,15 @@ def compute_rmse(model, data, n):
     """ Compute RMSE (Root Mean Squared Error).
     """
     predictions = model.predictAll(data.map(lambda x: (x.user, x.product)))
+    for x in  predictions.collect():
+    	print(x)
     predictionsAndRatings = predictions.map(lambda x: ((x[0], x[1]), x[2])) \
       .join(data.map(lambda x: ((x[0], x[1]), x[2]))) \
       .values()
     return sqrt(predictionsAndRatings.map(lambda x: (x[0] - x[1]) ** 2).reduce(add) / float(n))
 
 
-def split_data(directory):
-    playcounts_df = utils.load_playcounts_df(directory)
+def split_data(playcounts_df):
     print(playcounts_df.show())
     training_data, validation_data, test_data = playcounts_df.rdd.map(parse_playcount).randomSplit([4, 1, 1], 45)
     return training_data, validation_data, test_data
@@ -53,28 +56,29 @@ def train(training_data, validation_data, num_validation, ranks, lambdas, iterat
     return best_model
 
 
-def main(table_dir, output_dir):
-    training_data, validation_data, test_data = split_data(table_dir)
+def main(df):
+    training_data, validation_data, test_data = split_data(df)
     num_training = training_data.count()
     num_validation = validation_data.count()
     num_test = test_data.count()
     print('%d, %d, %d' % (training_data.count(), validation_data.count(), test_data.count()))
     model = train(training_data, validation_data, num_validation, [8, 12], [0.1, 10.0], [10, 20])
-    model.model.save(sc, os.path.join(output_dir, 'listenbrainz-recommendation-model'))
-    with open(os.path.join(output_dir, 'model-details.json'), 'w') as f:
-        print(ujson.dumps({
-            'rank': model.rank,
-            'lambda': model.lmbda,
-            'iteration': model.iteration,
-            'error': model.error,
-        }), file=f)
+    spark = SparkSession.builder.getOrCreate()
+    sc = spark.sparkContext
+
+    with tempfile.TemporaryDirectory() as training_data:
+        date = datetime.utcnow()
+        model.model.save(sc, os.path.join(training_data, 'listenbrainz-recommendation-model'))
+        with open(os.path.join(training_data, 'model-details.json'), 'w') as f:
+            print(json.dumps({
+                'rank': model.rank,
+                'lambda': model.lmbda,
+                'iteration': model.iteration,
+                'error': model.error,
+            }), file=f)
+            dest_path = os.path.join('/', 'data', 'listenbrainz', 'training-data-{}-{}-{}'.format(date.year,date.month,date.day))
+            hdfs_connection.init_hdfs(config.HDFS_HTTP_URI)
+            hdfs_connection.client.upload(hdfs_path=dest_path, local_path=training_data)
 
 
-if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Usage: python train_model.py [table_dir] [data_dir]")
-        sys.exit(0)
-
-    table_dir = sys.argv[1]
-    output_dir = sys.argv[2]
-    main(table_dir, output_dir)
+    
