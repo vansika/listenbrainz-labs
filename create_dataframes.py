@@ -4,6 +4,7 @@ from pyspark.sql import Row, SparkSession
 from datetime import datetime
 import os, sys
 import train_models
+import recommend
 
 def prepare_user_data(table):
     users_q = spark.sql("""
@@ -16,7 +17,7 @@ def prepare_user_data(table):
         user_name = user[0][0],
     ))
     users_df = spark.createDataFrame(users_rdd)
-    return users_df
+    return users_df, users_q
 
 def prepare_listen_data(table):
     listens_df = spark.sql("""
@@ -62,6 +63,8 @@ def get_playcounts_data(listens_df, users_df, recordings_df):
     """)
     return playcounts_df
 
+
+
 if __name__ == '__main__':
     listenbrainz_spark.init_spark_session('Create_Dataframe')
     spark = SparkSession.builder.getOrCreate()
@@ -82,7 +85,7 @@ if __name__ == '__main__':
     df.createOrReplaceTempView(table)
 
     print("Preparing user data...")
-    users_df = prepare_user_data(table)
+    users_df, users_q= prepare_user_data(table)
     print("Load data dump...")
     listens_df = prepare_listen_data(table)
     print("Prepare recording dump...")
@@ -90,10 +93,4 @@ if __name__ == '__main__':
     print("Get playcounts...")
     playcounts_df = get_playcounts_data(listens_df, users_df, recordings_df)
     train_models.main(playcounts_df)
-
-   
-    
-
-
-
-
+    recommend.main(users_df, playcounts_df, recordings_df, users_q)

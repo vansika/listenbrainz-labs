@@ -1,8 +1,16 @@
-from setup import spark, sc
 import utils
-from pyspark.mllib.recommendation import MatrixFactorizationModel
 import sys
+import os
+import tempfile
 
+from pyspark.mllib.recommendation import MatrixFactorizationModel
+from pyspark import SparkContext
+from listenbrainz_spark import hdfs_connection, config
+from datetime import datetime
+from pyspark.sql import SparkSession
+
+spark = None
+sc = None
 
 def load_model(path):
     return MatrixFactorizationModel.load(sc, path)
@@ -35,25 +43,19 @@ def recommend_user(user_name, model, recordings_map):
     recommended_recordings = [recordings_map.lookup(recommendations[i].product) for i in range(len(recommendations))]
     return recommended_recordings
 
-
-def main():
-    if len(sys.argv) < 4:
-        print("Usage: python recommend.py [table_dir] [models_dir] [user_name]")
-        sys.exit(0)
-
-    table_dir = sys.argv[1]
-    models_dir = sys.argv[2]
-    user_name = sys.argv[3]
-
-    users_df = utils.load_users_df(table_dir)
+def main(users_df, playcounts_df, recordings_df, users_q):
+    global spark, sc
+    spark = SparkSession.builder.getOrCreate()
+    sc = spark.sparkContext
     users_df.createOrReplaceTempView('user')
-    playcounts_df = utils.load_playcounts_df(table_dir)
     playcounts_df.createOrReplaceTempView('playcount')
-    recordings_df = utils.load_recordings_df(table_dir)
     recordings_map = recordings_df.rdd.map(lambda r: (r['recording_id'], (r['track_name'], r['recording_msid'])))
-    model = load_model(models_dir)
-    print(recommend_user(user_name, model, recordings_map))
-
-
-if __name__ == '__main__':
-    main()
+    with tempfile.TemporaryDirectory() as recommend_data:
+        date = datetime.utcnow()
+        hdfs_connection.init_hdfs(config.HDFS_HTTP_URI)
+        models_dir = hdfs_connection.client.download(hdfs_path=os.path.join('/', 'data', 'listenbrainz', 'training-data-{}-{}-{}'.format(date.year,date.month,date.day), 'listenbrainz-recommendation-model'), local_path=recommend_data)
+        print(models_dir)
+        model = load_model(models_dir)
+        for user in users_q.collect():
+            print("user name: ", user.user_name)
+            print(recommend_user(user.user_name, model, recordings_map))

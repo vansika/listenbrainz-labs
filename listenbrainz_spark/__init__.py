@@ -3,7 +3,7 @@ from pyspark.sql import SparkSession
 session = None
 
 def init_spark_session(app_name):
-    global session, context, sql_context
+    global session
     session = SparkSession \
             .builder \
             .appName(app_name) \
