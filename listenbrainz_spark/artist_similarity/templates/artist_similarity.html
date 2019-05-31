@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Similar Artists</title>
+<style>
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: left;
+  padding: 8px;
+}
+</style>
+</head>
+<body>
+	<center>
+		<h2>Similar artists</h2>
+	</center>
+	<p>For every user, top 10 artists have been selected from lifetime listen history (2005-2019) and artists similar to these top 10 artists have been calculated using cosine similarity</p>
+	{% for user_name, similarity_data in user_info.items() -%}
+	<p><b>{{ user_name }}</b></p>
+	<table>
+		<tr>
+			<th>artist_name</th>
+			<th>artist_msid</th>
+		</tr>
+		{% for row in similarity_data -%}
+		<tr>
+			<td>{{ row[0] }}</td>
+			<td>{{ row[1] }}</td>
+		</tr>
+		{% endfor -%}
+	</table>
+	{% endfor -%}
+</body>
+</html>

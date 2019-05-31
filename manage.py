@@ -2,6 +2,9 @@ import sys
 from listenbrainz_spark.recommendations import create_dataframes
 from listenbrainz_spark.recommendations import train_models
 from listenbrainz_spark.recommendations import recommend
+from listenbrainz_spark.artist_similarity import artist_dataframes
+from listenbrainz_spark.artist_similarity import artist_features
+from listenbrainz_spark.artist_similarity import candidate_set
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:
@@ -15,3 +18,9 @@ if __name__ == '__main__':
         train_models.main()
     elif module_name == 'recommend':
         recommend.main()
+    elif module_name == 'artist_dataframes':
+        artist_dataframes.main()
+    elif module_name == 'artist_features':
+        artist_features.main()
+    elif module_name == 'candidate_set':
+        candidate_set.main()
