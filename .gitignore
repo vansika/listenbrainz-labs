@@ -102,3 +102,8 @@ ENV/
 
 config.py
 docker/tunnel/keys
+
+# local files
+listenbrainz_spark/recommendations/html_files/
+listenbrainz_spark/recommendations/recommendation-metadata.json
+.vscode/
