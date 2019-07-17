@@ -15,10 +15,26 @@ from listenbrainz_spark.exceptions import SQLException
 from listenbrainz_spark.recommendations.utils import save_html
 from listenbrainz_spark.sql import candidate_sets_queries as sql
 
+from dateutil.relativedelta import relativedelta
 from pyspark.sql.utils import AnalysisException, ParseException
 
 # Candidate Set HTML is generated if set to true.
 SAVE_CANDIDATE_HTML = True
+
+def get_listens():
+    # under the assumption that config.RECOMMENDATION_GENERATION_WINDOW will always be
+    # between 0 and 28 (considering leap year)
+    rec_df = None
+    t = datetime.utcnow()
+    d = t + relativedelta(days=-config.RECOMMENDATION_GENERATION_WINDOW)
+    if d.year != t.year:
+        df = utils.get_listens(d.year, 12, 13)
+        rec_df = df
+        df = utils.get_listens(t.year, 1, 2)
+        rec_df = rec_df.union(df)
+    else:
+        rec_df = utils.get_listens(d.year, d.month, t.month + 1)
+    return rec_df
 
 def get_similar_artists(top_artists_df, user_name):
     """ Get similar artists dataframe.
@@ -193,14 +209,29 @@ def main():
         sys.exit(-1)
 
     try:
-        listens_df = utils.get_listens()
+        df = get_listens()
     except AttributeError:
         sys.exit(-1)
 
-    if not listens_df:
-        logging.error('Parquet files containing listening history from {}-{} to {}-{} missing from HDFS' \
-            .format(config.STARTING_YEAR, '{:02d}'.format(config.STARTING_MONTH), config.ENDING_YEAR, '{:02d}' \
-            .format( config.ENDING_MONTH)))
+    if not df:
+        logging.error('Parquet files containing listening history of past {} days missing from HDFS'.format(
+            config.RECOMMENDATION_GENERATION_WINDOW))
+        sys.exit(-1)
+
+    try:
+        utils.register_dataframe(df, 'df')
+    except AnalysisException:
+        logging.info('Aborting...')
+        sys.exit(-1)
+    except AttributeError:
+        logging.info('Aborting...')
+        sys.exit(-1)
+
+    try:
+        listens_df = sql.get_listens_for_X_days()
+    except SQLException as err:
+        logging.error('Dataframe of past {} days cannot be prepared: {}\n{}\nAborting...'.format(
+            config.RECOMMENDATION_GENERATION_WINDOW, type(err).__name__, str(err)))
         sys.exit(-1)
 
     try:
