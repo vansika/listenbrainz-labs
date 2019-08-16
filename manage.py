@@ -67,7 +67,7 @@ def init_dir(rm, recursive, create_dir):
 
             print('Done!')
         except HdfsError as err:
-            logging.error('{}: An error occured while creating some/more directories.\n{}\nAborting...'.format(
+            logging.error('{}: An error occured while creating some/all directories.\n{}\nAborting...'.format(
                 type(err).__name__, str(err)))
             sys.exit(-1)
 
