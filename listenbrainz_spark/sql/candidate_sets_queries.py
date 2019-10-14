@@ -3,7 +3,7 @@ from listenbrainz_spark.stats import run_query
 
 from pyspark.sql.functions import lit
 
-def get_listens_for_X_days():
+def get_listens_for_X_days(table):
     """ Prepare dataframe of listens of X days where X is  a config value.
 
       Returns:
@@ -18,13 +18,13 @@ def get_listens_for_X_days():
     """
     df = run_query("""
       SELECT *
-        FROM df
-       WHERE listened_at >= to_timestamp(date_sub(current_timestamp, %s))
+        FROM {}
+       WHERE listened_at >= to_timestamp(date_sub(current_timestamp, {}))
          AND listened_at < current_timestamp
-    """ % config.RECOMMENDATION_GENERATION_WINDOW)
+    """.format(table ,config.RECOMMENDATION_GENERATION_WINDOW))
     return df
 
-def get_top_artists(user_name):
+def get_top_artists(user_name, listens_days_view):
     """ Prepare dataframe of top y (limit) artists listened to by the user where y
         is a config value.
 
@@ -42,15 +42,15 @@ def get_top_artists(user_name):
                  , artist_name
                  , artist_msid
                  , count(artist_msid) as count
-              FROM listens_df
+              FROM {}
           GROUP BY user_name, artist_name, artist_msid
-            HAVING user_name = "%s"
+            HAVING user_name = "{}"
           ORDER BY count DESC
-             LIMIT %s
-    """ % (user_name, config.TOP_ARTISTS_LIMIT))
+             LIMIT {}
+    """.format(listens_days_view, user_name, config.TOP_ARTISTS_LIMIT))
     return top_artists_df
 
-def get_similar_artists_with_limit(artists):
+def get_similar_artists_with_limit(artists, artist_relation_view):
     """ Prepare similar artists dataframe which consists of top x (limit) artists similar to each
         of the top artists listened to by the user where x is a config value.
 
@@ -73,21 +73,21 @@ def get_similar_artists_with_limit(artists):
                 SELECT artist_name_0 as artist_name
                      , artist_name_1 as similar_artist_name
                      , count
-                  FROM artists_relation
-                 WHERE artist_name_0 IN %s
+                  FROM {table}
+                 WHERE artist_name_0 IN {artists}
                  UNION
                 SELECT artist_name_1 as artist_name
                      , artist_name_0 as similar_artist_name
                      , count
-                  FROM artists_relation
-                 WHERE artist_name_1 IN %s
+                  FROM {table}
+                 WHERE artist_name_1 IN {artists}
               ) similar_artists
           ) top_similar_artists
-         WHERE top_similar_artists.rank <= %s
-    """ % (artists, artists, config.SIMILAR_ARTISTS_LIMIT))
+         WHERE top_similar_artists.rank <= {limit}
+    """.format(table=artist_relation_view, artists=artists, limit=config.SIMILAR_ARTISTS_LIMIT))
     return similar_artists_df
 
-def get_candidate_recording_ids(artists, user_id):
+def get_candidate_recording_ids(artists, user_id, recording_view):
     """ Prepare dataframe of recording ids which belong to artists provided as argument.
 
         Args:
@@ -102,13 +102,13 @@ def get_candidate_recording_ids(artists, user_id):
     """
     df = run_query("""
         SELECT recording_id
-          FROM recording
-         WHERE artist_name IN %s
-    """ % (artists,))
+          FROM {}
+         WHERE artist_name IN {}
+    """.format(recording_view, artists,))
     candidate_recording_ids_df = df.withColumn('user_id', lit(user_id)).select('user_id', 'recording_id')
     return candidate_recording_ids_df
 
-def get_net_similar_artists():
+def get_net_similar_artists(similar_artist_view, top_artist_view):
     """ Prepare dataframe consisting of similar artists which do not contain any of the
         top artists.
 
@@ -120,16 +120,16 @@ def get_net_similar_artists():
     """
     net_similar_artists_df = run_query("""
         SELECT similar_artist_name
-          FROM similar_artist
+          FROM {}
          WHERE similar_artist_name
         NOT IN (
             SELECT artist_name
-              FROM top_artist
+              FROM {}
         )
-    """)
+    """.format(similar_artist_view, top_artist_view))
     return net_similar_artists_df
 
-def get_top_artists_with_collab():
+def get_top_artists_with_collab(similar_artist_view):
     """ Prepare dataframe consisting of top artists with non zero collaborations.
 
         Returns:
@@ -140,11 +140,11 @@ def get_top_artists_with_collab():
     """
     top_artists_with_collab_df = run_query("""
         SELECT DISTINCT artist_name
-          FROM similar_artist
-    """)
+          FROM {}
+    """.format(similar_artist_view))
     return top_artists_with_collab_df
 
-def get_similar_artists_for_candidate_html(artist_name):
+def get_similar_artists_for_candidate_html(artist_name, similar_artist_view):
     """ Prepare dataframe consisting of artists similar to given artist.
 
         Args:
@@ -158,7 +158,7 @@ def get_similar_artists_for_candidate_html(artist_name):
     """
     df = run_query("""
         SELECT similar_artist_name
-          FROM similar_artist
-         WHERE artist_name = "%s"
-    """ % (artist_name))
+          FROM {}
+         WHERE artist_name = "{}"
+    """.format(similar_artist_view, artist_name))
     return df

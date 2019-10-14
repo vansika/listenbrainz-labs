@@ -10,7 +10,7 @@ from py4j.protocol import Py4JJavaError
 
 import listenbrainz_spark
 from listenbrainz_spark import stats
-from listenbrainz_spark import config, utils, path
+from listenbrainz_spark import config, utils, path, view
 from listenbrainz_spark.sql import get_user_id
 from listenbrainz_spark.recommendations.utils import save_html
 from listenbrainz_spark.sql import candidate_sets_queries as sql
@@ -64,9 +64,9 @@ def get_similar_artists(top_artists_df, user_name):
 
     if len(top_artists) == 1:
         # Handle tuple with single entity
-        similar_artists_df = sql.get_similar_artists_with_limit(tuple(top_artists[0]))
+        similar_artists_df = sql.get_similar_artists_with_limit(tuple(top_artists[0]), view.ARTIST_RELATION)
     else:
-        similar_artists_df = sql.get_similar_artists_with_limit(tuple(top_artists))
+        similar_artists_df = sql.get_similar_artists_with_limit(tuple(top_artists), view.ARTIST_RELATION)
 
     try:
         similar_artists_df.take(1)[0]
@@ -76,7 +76,7 @@ def get_similar_artists(top_artists_df, user_name):
             .format(type(err).__name__, str(err), user_name))
     return similar_artists_df
 
-def get_top_artists_recording_ids(similar_artist_df, user_name, user_id):
+def get_top_artists_recording_ids(similar_artist_df, user_name, user_id, similar_artist_view):
     """ Get recording ids of top artists.
 
         Args:
@@ -91,17 +91,18 @@ def get_top_artists_recording_ids(similar_artist_df, user_name, user_id):
                 ]
     """
     # top artists with collaborations not equal to zero.
-    top_artists_with_collab_df = sql.get_top_artists_with_collab()
+    top_artists_with_collab_df = sql.get_top_artists_with_collab(similar_artist_view)
     top_artists_with_collab = [row.artist_name for row in top_artists_with_collab_df.collect()]
 
     if len(top_artists_with_collab) == 1:
         top_artists_recording_ids_df = sql.get_candidate_recording_ids(tuple((
-            top_artists_with_collab[0])),user_id)
+            top_artists_with_collab[0])),user_id, recoridng_view)
     else:
-        top_artists_recording_ids_df = sql.get_candidate_recording_ids(tuple(top_artists_with_collab), user_id)
+        top_artists_recording_ids_df = sql.get_candidate_recording_ids(tuple(top_artists_with_collab), user_id, view.RECORDING)
     return top_artists_recording_ids_df
 
-def get_similar_artists_recording_ids(similar_artists_df, top_artists_df, user_name, user_id):
+def get_similar_artists_recording_ids(similar_artists_df, top_artists_df, user_name, user_id, similar_artist_view,
+                                        top_artist_view):
     """ Get recording ids of similar artists.
 
         Args:
@@ -117,7 +118,7 @@ def get_similar_artists_recording_ids(similar_artists_df, top_artists_df, user_n
                 ]
     """
     # eliminate artists from similar artists who are a part of top artists
-    similar_artists_df = sql.get_net_similar_artists()
+    similar_artists_df = sql.get_net_similar_artists(similar_artist_view, top_artist_view)
     try:
         similar_artists_df.take(1)[0]
     except IndexError as err:
@@ -126,9 +127,9 @@ def get_similar_artists_recording_ids(similar_artists_df, top_artists_df, user_n
     similar_artists = [row.similar_artist_name for row in similar_artists_df.collect()]
 
     if len(similar_artists) == 1:
-        similar_artists_recording_ids_df = sql.get_candidate_recording_ids(tuple(similar_artists[0]), user_id)
+        similar_artists_recording_ids_df = sql.get_candidate_recording_ids(tuple(similar_artists[0]), user_id, view.RECORDING)
     else:
-        similar_artists_recording_ids_df = sql.get_candidate_recording_ids(tuple(similar_artists), user_id)
+        similar_artists_recording_ids_df = sql.get_candidate_recording_ids(tuple(similar_artists), user_id, view.RECORDING)
 
     try:
         similar_artists_recording_ids_df.take(1)[0]
@@ -157,7 +158,7 @@ def save_candidate_sets(top_artists_candidate_set_df, similar_artists_candidate_
     utils.save_parquet(top_artists_candidate_set_df, path.TOP_ARTIST_CANDIDATE_SET)
     utils.save_parquet(similar_artists_candidate_set_df, path.SIMILAR_ARTIST_CANDIDATE_SET)
 
-def get_candidate_html_data(similar_artist_df, user_name):
+def get_candidate_html_data(similar_artist_df, user_name, similar_artist_view):
     """ Get artists similar to top artists listened to by the user. The function is invoked
         when candidate set HTML is to be generated.
 
@@ -178,9 +179,9 @@ def get_candidate_html_data(similar_artist_df, user_name):
                 }
     """
     artists = defaultdict(dict)
-    top_artist_with_collab_df = sql.get_top_artists_with_collab()
+    top_artist_with_collab_df = sql.get_top_artists_with_collab(similar_artist_view)
     for row in top_artist_with_collab_df.collect():
-        df = sql.get_similar_artists_for_candidate_html(row.artist_name)
+        df = sql.get_similar_artists_for_candidate_html(row.artist_name, similar_artist_view)
         artists[row.artist_name] = [row.similar_artist_name for row in df.collect()]
     return artists
 
@@ -221,13 +222,13 @@ def main():
         current_app.logger.error('Listening history of past {} days do not exist'.format(config.RECOMMENDATION_GENERATION_WINDOW))
 
     try:
-        utils.register_dataframe(df, 'df')
+        utils.register_dataframe(df, view.LISTENS_MONTHS)
     except ViewNotRegisteredException as err:
         current_app.logger.error(str(err), exc_info=True)
         sys.exit(-1)
 
     try:
-        listens_df = sql.get_listens_for_X_days()
+        listens_df = sql.get_listens_for_X_days(view.LISTENS_MONTHS)
     except SQLException as err:
         current_app.logger.error(str(err), exc_info=True)
         sys.exit(-1)
@@ -245,10 +246,10 @@ def main():
 
     current_app.logger.info('Registering Dataframes...')
     try:
-        utils.register_dataframe(listens_df, 'listens_df')
-        utils.register_dataframe(recordings_df, 'recording')
-        utils.register_dataframe(users_df, 'user')
-        utils.register_dataframe(artists_relation_df, 'artists_relation')
+        utils.register_dataframe(listens_df, view.LISTENS_DAYS)
+        utils.register_dataframe(recordings_df, view.RECORDING)
+        utils.register_dataframe(users_df, view.USER)
+        utils.register_dataframe(artists_relation_df, view.ARTIST_RELATION)
     except ViewNotRegisteredException as err:
         current_app.logger.error(str(err), exc_info=True)
         sys.exit(-1)
@@ -265,7 +266,7 @@ def main():
     for user_name in user_names:
         ts = time()
         try:
-            user_id = get_user_id(user_name)
+            user_id = get_user_id(user_name, view.USER)
         except TypeError as err:
             current_app.logger.error('{}: Invalid user name. User "{}" does not exist.'.format(type(err).__name__,user_name))
             continue
@@ -274,7 +275,7 @@ def main():
             continue
 
         try:
-            top_artists_df = sql.get_top_artists(user_name)
+            top_artists_df = sql.get_top_artists(user_name, view.LISTENS_DAYS)
             top_artists_df.take(1)[0]
         except IndexError as err:
             current_app.logger.error('{}: {}\nNo top artists found, i.e. "{}" is either a new user or has empty listening history.' \
@@ -293,15 +294,18 @@ def main():
             current_app.logger.error('Candidate sets not generated for "{}"\n{}'.format(user_name,str(err)), exc_info=True)
             continue
 
+        top_artist_view = view.TOP_ARTIST + '-' + user_name + '`'
+        similar_artist_view = view.SIMILAR_ARTIST + '-' + user_name + '`'
         try:
-            utils.register_dataframe(similar_artists_df, 'similar_artist')
-            utils.register_dataframe(top_artists_df, 'top_artist')
+            utils.register_dataframe(similar_artists_df, similar_artist_view)
+            utils.register_dataframe(top_artists_df, top_artist_view)
         except ViewNotRegisteredException as err:
             current_app.logger.error(str(err), exc_info=True)
             continue
 
         try:
-            top_artists_recording_ids_df = get_top_artists_recording_ids(similar_artists_df, user_name, user_id)
+            top_artists_recording_ids_df = get_top_artists_recording_ids(similar_artists_df, user_name, user_id,
+                similar_artist_view)
         except SQLException as err:
             current_app.logger.error('Candidate sets could not be generated for "{}"\n{}'.format(user_name, str(err)), exc_info=True)
             continue
@@ -310,7 +314,7 @@ def main():
 
         try:
             similar_artists_recording_ids_df = get_similar_artists_recording_ids(similar_artists_df, top_artists_df,
-                user_name, user_id)
+                user_name, user_id, similar_artist_view, top_artist_view)
         except IndexError as err:
             current_app.logger.error('{}\nGenrating recommendations for next user'.format(err))
             continue
@@ -321,7 +325,7 @@ def main():
             if similar_artists_candidate_set_df else similar_artists_recording_ids_df
 
         if SAVE_CANDIDATE_HTML:
-            user_data[user_name]['artists'] = get_candidate_html_data(similar_artists_df, user_name)
+            user_data[user_name]['artists'] = get_candidate_html_data(similar_artists_df, user_name, similar_artist_view)
             user_data[user_name]['time'] = '{:.2f}'.format(time() - ts)
         current_app.logger.info('candidate_set generated for \"{}\"'.format(user_name))
 
