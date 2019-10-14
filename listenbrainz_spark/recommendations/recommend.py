@@ -10,7 +10,7 @@ from collections import defaultdict
 from py4j.protocol import Py4JJavaError
 
 import listenbrainz_spark
-from listenbrainz_spark import config, utils, path
+from listenbrainz_spark import config, utils, path, view
 from listenbrainz_spark.sql import get_user_id
 from listenbrainz_spark.exceptions import SQLException, SparkSessionNotInitializedException, PathNotFoundException, \
     FileNotFetchedException, ViewNotRegisteredException
@@ -58,9 +58,9 @@ def get_recommended_recordings(candidate_set, limit, recordings_df, model):
     recommendations = model.predictAll(candidate_set).takeOrdered(limit, lambda product: -product.rating)
     recommended_recording_ids = [(recommendations[i].product) for i in range(len(recommendations))]
     if len(recommended_recording_ids) == 1:
-        recommendations_df = sql.get_recordings(tuple(recommended_recording_ids[0]))
+        recommendations_df = sql.get_recordings(tuple(recommended_recording_ids[0]), view.RECORDING)
     else:
-        recommendations_df = sql.get_recordings(tuple(recommended_recording_ids))
+        recommendations_df = sql.get_recordings(tuple(recommended_recording_ids), view.RECORDING)
     recommended_recordings = []
     for row in recommendations_df.collect():
         rec = (row.track_name, row.recording_msid, row.artist_name, row.artist_msid, row.release_name, row.release_msid)
@@ -96,15 +96,15 @@ def recommend_user(user_name, model, recordings_df):
                 }
     """
     user_recommendations = defaultdict(dict)
-    user_id = get_user_id(user_name)
+    user_id = get_user_id(user_name, view.USER)
 
-    top_artists_recordings = sql.get_top_artists_recordings(user_id)
+    top_artists_recordings = sql.get_top_artists_recordings(user_id, view.TOP_ARTIST_CANDIDATE)
     top_artists_candidate_set = top_artists_recordings.rdd.map(lambda r: (r['user_id'], r['recording_id']))
     top_artists_recommended_recordings = get_recommended_recordings(top_artists_candidate_set, config \
         .RECOMMENDATION_TOP_ARTIST_LIMIT, recordings_df, model)
     user_recommendations['top_artists_recordings'] = top_artists_recommended_recordings
 
-    similar_artists_recordings = sql.get_similar_artists_recordings(user_id)
+    similar_artists_recordings = sql.get_similar_artists_recordings(user_id, view.SIMILAR_ARTIST_CANDIDATE)
     similar_artists_candidate_set = similar_artists_recordings.rdd.map(lambda r : (r['user_id'], r['recording_id']))
     similar_artists_recommended_recordings = get_recommended_recordings(similar_artists_candidate_set,
         config.RECOMMENDATION_SIMILAR_ARTIST_LIMIT, recordings_df, model)
@@ -218,10 +218,10 @@ def main():
         sys.exit(-1)
 
     try:
-        utils.register_dataframe(users_df, 'user')
-        utils.register_dataframe(top_artists_candidate_df, 'top_artist')
-        utils.register_dataframe(similar_artists_candidate_df, 'similar_artist')
-        utils.register_dataframe(recordings_df, 'recording')
+        utils.register_dataframe(users_df, view.USER)
+        utils.register_dataframe(top_artists_candidate_df, view.TOP_ARTIST_CANDIDATE)
+        utils.register_dataframe(similar_artists_candidate_df, view.SIMILAR_ARTIST_CANDIDATE)
+        utils.register_dataframe(recordings_df, view.RECORDING)
     except ViewNotRegisteredException as err:
         current_app.logger.error(str(err), exc_info=True)
         sys.exit(-1)

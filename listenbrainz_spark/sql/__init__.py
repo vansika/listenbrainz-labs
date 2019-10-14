@@ -1,6 +1,6 @@
 from listenbrainz_spark.stats import run_query
 
-def get_user_id(user_name):
+def get_user_id(user_name, user_view):
     """ Get user id using user name.
 
         Args:
@@ -11,7 +11,7 @@ def get_user_id(user_name):
     """
     result = run_query("""
         SELECT user_id
-          FROM user
-         WHERE user_name = '%s'
-    """ % user_name)
+          FROM {}
+         WHERE user_name = '{}'
+    """.format(user_view, user_name))
     return result.first()['user_id']

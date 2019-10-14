@@ -1,6 +1,6 @@
 from listenbrainz_spark.stats import run_query
 
-def get_top_artists_recordings(user_id):
+def get_top_artists_recordings(user_id, top_artist_candidate_view):
     """ Prepare dataframe of recordings which belong to top artists listened to
         by the user.
 
@@ -16,12 +16,12 @@ def get_top_artists_recordings(user_id):
     top_artists_recordings_df = run_query("""
         SELECT user_id
              , recording_id
-          FROM top_artist
-         WHERE user_id = %s
-    """ % user_id)
+          FROM {}
+         WHERE user_id = {}
+    """.format(top_artist_candidate_view, user_id))
     return top_artists_recordings_df
 
-def get_similar_artists_recordings(user_id):
+def get_similar_artists_recordings(user_id, similar_artist_candidate_view):
     """ Prepare dataframe of recordings which belong to artists similar to top artists
         listened to by the user.
 
@@ -37,12 +37,12 @@ def get_similar_artists_recordings(user_id):
     similar_artists_recordings_df = run_query("""
         SELECT user_id
              , recording_id
-          FROM similar_artist
-         WHERE user_id = %s
-    """ % user_id)
+          FROM {}
+         WHERE user_id = {}
+    """.format(similar_artist_candidate_view, user_id))
     return similar_artists_recordings_df
 
-def get_recordings(recording_ids):
+def get_recordings(recording_ids, recording_view):
     """ Prepare dataframe of recommended recordings.
 
         Args:
@@ -62,7 +62,7 @@ def get_recordings(recording_ids):
              , artist_msid
              , release_name
              , release_msid
-          FROM recording
-         WHERE recording_id IN %s
-    """ % (recording_ids,))
+          FROM {}
+         WHERE recording_id IN {}
+    """.format(recording_view, recording_ids,))
     return df
