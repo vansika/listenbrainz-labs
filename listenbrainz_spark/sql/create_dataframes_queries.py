@@ -1,6 +1,6 @@
 from listenbrainz_spark.stats import run_query
 
-def prepare_user_data(table):
+def prepare_user_data(user_view):
     """ Prepare users dataframe to select distinct user names and assign
         each user a unique integer id.
 
@@ -16,11 +16,11 @@ def prepare_user_data(table):
     users_df = run_query("""
             SELECT user_name
                  , row_number() OVER (ORDER BY 'user_name') AS user_id
-              FROM (SELECT DISTINCT user_name FROM %s)
-        """ % (table))
+              FROM (SELECT DISTINCT user_name FROM {})
+        """.format(user_view))
     return users_df
 
-def prepare_listen_data(table):
+def prepare_listen_data(listen_view):
     """ Prepare listens dataframe to select all the listens from the
         registered dataframe.
 
@@ -38,11 +38,11 @@ def prepare_listen_data(table):
                  , track_name
                  , recording_msid
                  , user_name
-             FROM %s
-        """ % (table))
+             FROM {}
+        """.format(listen_view))
     return listens_df
 
-def prepare_recording_data(table):
+def prepare_recording_data(recording_view):
     """ Prepare recordings dataframe to select distinct recordings/tracks
         listened to and assign each recording a unique integer id.
 
@@ -65,11 +65,11 @@ def prepare_recording_data(table):
                  , release_msid
                  , row_number() OVER (ORDER BY 'recording_msid') AS recording_id
               FROM (SELECT DISTINCT recording_msid, track_name, artist_name, artist_msid,
-                    release_name, release_msid FROM %s)
-        """ % (table))
+                    release_name, release_msid FROM {})
+        """.format(recording_view))
     return recordings_df
 
-def get_playcounts_data():
+def get_playcounts_data(listen_view, user_view, recording_view):
     """ Prepare playcounts dataframe by joining listens_df, users_df and
         recordings_df to select distinct tracks that a user has listened to
         for all the users along with listen count.
@@ -84,12 +84,12 @@ def get_playcounts_data():
         SELECT user_id,
                recording_id,
                count(recording_id) as count
-          FROM listen
-    INNER JOIN user
-            ON listen.user_name = user.user_name
-    INNER JOIN recording
-            ON recording.recording_msid = listen.recording_msid
+          FROM {listen}
+    INNER JOIN {user}
+            ON {listen}.user_name = {user}.user_name
+    INNER JOIN {recording}
+            ON {recording}.recording_msid = {listen}.recording_msid
       GROUP BY user_id, recording_id
       ORDER BY user_id
-    """)
+    """.format(listen=listen_view, user=user_view, recording=recording_view))
     return playcounts_df

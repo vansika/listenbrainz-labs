@@ -10,7 +10,7 @@ import listenbrainz_spark
 from listenbrainz_spark import path
 from listenbrainz_spark import stats
 from listenbrainz_spark import utils
-from listenbrainz_spark import config
+from listenbrainz_spark import config, view
 from listenbrainz_spark.exceptions import SQLException, FileNotSavedException, FileNotFetchedException, ViewNotRegisteredException, SparkSessionNotInitializedException
 from listenbrainz_spark.recommendations.utils import save_html
 from listenbrainz_spark.sql import create_dataframes_queries as sql
@@ -81,9 +81,9 @@ def main():
         sys.exit(-1)
 
     current_app.logger.info('Registering Dataframe...')
-    table = 'df_to_train_{}'.format(datetime.strftime(datetime.utcnow(), '%Y_%m_%d'))
+
     try:
-        utils.register_dataframe(df, table)
+        utils.register_dataframe(df, view.LISTENS_TRAIN)
     except ViewNotRegisteredException as err:
         current_app.logger.error(str(err), exc_info=True)
         sys.exit(-1)
@@ -92,7 +92,7 @@ def main():
     current_app.logger.info('Preparing users data and saving to HDFS...')
     t0 = time()
     try:
-        users_df = sql.prepare_user_data(table)
+        users_df = sql.prepare_user_data(view.LISTENS_TRAIN)
     except SQLException as err:
         current_app.logger.error(str(err), exc_info=True)
         sys.exit(-1)
@@ -107,7 +107,7 @@ def main():
     current_app.logger.info('Preparing recordings data and saving to HDFS...')
     t0 = time()
     try:
-        recordings_df = sql.prepare_recording_data(table)
+        recordings_df = sql.prepare_recording_data(view.LISTENS_TRAIN)
     except SQLException as err:
         current_app.logger.error(str(err), exc_info=True)
         sys.exit(-1)
@@ -122,21 +122,21 @@ def main():
     current_app.logger.info('Preparing listen data dump and playcounts, saving playcounts to HDFS...')
     t0 = time()
     try:
-        listens_df = sql.prepare_listen_data(table)
+        listens_df = sql.prepare_listen_data(view.LISTENS_TRAIN)
     except SQLException as err:
         current_app.logger.error(str(err), exc_info=True)
         sys.exit(-1)
 
     try:
-        utils.register_dataframe(listens_df, 'listen')
-        utils.register_dataframe(users_df, 'user')
-        utils.register_dataframe(recordings_df, 'recording')
+        utils.register_dataframe(listens_df, view.LISTEN)
+        utils.register_dataframe(users_df, view.USER)
+        utils.register_dataframe(recordings_df, view.RECORDING)
     except ViewNotRegisteredException as err:
         current_app.logger.error(str(err), exc_info=True)
         sys.exit(-1)
 
     try:
-        playcounts_df = sql.get_playcounts_data()
+        playcounts_df = sql.get_playcounts_data(view.LISTEN, view.USER, view.RECORDING)
     except SQLException as err:
         current_app.logger.error(str(err), exc_info=True)
         sys.exit(-1)
