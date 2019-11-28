@@ -1,7 +1,7 @@
 import unittest
 
 from listenbrainz_spark import utils
-from listenbrainz_spark.tests import SparkTestCase
+from tests import SparkTestCase
 
 class UtilsTestCase(SparkTestCase):
 

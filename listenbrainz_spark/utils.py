@@ -121,12 +121,13 @@ def read_files_from_HDFS(path):
     except Py4JJavaError as err:
         raise FileNotFetchedException(err.java_exception, path)
 
-def get_listens(from_date, to_date):
+def get_listens(from_date, to_date, dest_path):
     """ Prepare dataframe of months falling between from_date and to_date (both inclusive).
 
         Args:
             from_date (datetime): Date from which start fetching listens.
             to_date (datetime): Date upto which fetch listens.
+            dest_path (str): HDFS path.
 
         Returns:
             df (dataframe): Columns can be depicted as:
@@ -142,7 +143,7 @@ def get_listens(from_date, to_date):
     df = None
     while from_date <= to_date:
         try:
-            month = read_files_from_HDFS('{}/{}/{}.parquet'.format(config.HDFS_CLUSTER_URI + path.LISTENBRAINZ_DATA_DIRECTORY, from_date.year, from_date.month))
+            month = read_files_from_HDFS('{}/{}/{}.parquet'.format(dest_path, from_date.year, from_date.month))
             df = df.union(month) if df else month
         except PathNotFoundException as err:
             current_app.logger.warning('{}\nFetching file for next date...'.format(err))
