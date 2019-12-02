@@ -35,20 +35,17 @@ class UtilsTestCase(SparkTestCase):
 
         df = utils.create_dataframe(Row(column1=1, column2=2), schema=None)
         self.assertEqual(df.count(), 1)
-
         utils.save_parquet(df, hdfs_path)
+
         received_df = utils.read_files_from_HDFS(hdfs_path)
         self.assertEqual(received_df.count(), 1)
-
         utils.delete_dir('/' + path_, recursive=True)
 
     def test_create_dir(self):
         path_ = '/tests/test'
         utils.create_dir(path_)
-
         status = utils.get_status(path_)
         self.assertEqual(status, True)
-
         utils.delete_dir(path_, recursive=True)
 
     def test_delete_dir(self):
@@ -75,7 +72,6 @@ class UtilsTestCase(SparkTestCase):
 
         received_df = utils.get_listens(from_date, to_date, hdfs_path)
         self.assertEqual(received_df.count(), 2)
-
         utils.delete_dir('/' + path_, recursive=True)
 
     def test_get_status(self):
@@ -84,7 +80,6 @@ class UtilsTestCase(SparkTestCase):
 
         status = utils.get_status(path_)
         self.assertEqual(status, True)
-
         utils.delete_dir(path_)
         status = utils.get_status(path_)
         self.assertEqual(status, False)
@@ -98,5 +93,4 @@ class UtilsTestCase(SparkTestCase):
 
         received_df = utils.read_files_from_HDFS(hdfs_path)
         self.assertEqual(received_df.count(), 1)
-
         utils.delete_dir('/' + path_, recursive=True)
