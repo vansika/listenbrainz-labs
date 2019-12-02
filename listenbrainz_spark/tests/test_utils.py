@@ -100,11 +100,3 @@ class UtilsTestCase(SparkTestCase):
         self.assertEqual(received_df.count(), 1)
 
         utils.delete_dir('/' + path_, recursive=True)
-
-
-
-
-
-
-
-
