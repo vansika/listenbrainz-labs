@@ -193,12 +193,12 @@ def delete_dir(path, recursive=False):
     except HdfsError as err:
         raise HDFSDirectoryNotDeletedException(str(err), path)
 
-def get_status(path):
-    """ Checks the status of a directory in HDFS. The function returns False if the directory
+def path_exists(path):
+    """ Checks if the path exists in HDFS. The function returns False if the path
         does not exist otherwise returns True.
 
         Args:
-            path (string): Path of the directory to check status for.
+            path (string): Path to check status for.
 
         Note: Caller is responsible for initializing HDFS connection.
     """
