@@ -34,7 +34,7 @@ def append(df, dest_path):
             dest_path (string): Path where the existing dataframe is found or where a new dataframe should be created.
     """
     try:
-        df.write.mode('append').parquet(dest_path)
+        df.write.mode('append').parquet(config.HDFS_CLUSTER_URI + dest_path)
     except Py4JJavaError as err:
         raise DataFrameNotAppendedException(err.java_exception, df.schema)
 
@@ -121,7 +121,7 @@ def read_files_from_HDFS(path):
             path (str): An HDFS path.
     """
     try:
-        df = listenbrainz_spark.sql_context.read.parquet(path)
+        df = listenbrainz_spark.sql_context.read.parquet(config.HDFS_CLUSTER_URI + path)
         return df
     except AnalysisException as err:
         raise PathNotFoundException(str(err), path)
@@ -151,7 +151,7 @@ def get_listens_without_artist_and_recording_mbids(df):
     return df.select('artist_msid', 'artist_name', 'listened_at', 'recording_msid', 'release_mbid', 'release_msid',
         'release_name', 'tags', 'track_name', 'user_name')
 
-def get_listens(from_date, to_date):
+def get_listens(from_date, to_date, dest_path):
     """ Prepare dataframe of months falling between from_date and to_date (both inclusive).
 
         Args:
@@ -172,8 +172,7 @@ def get_listens(from_date, to_date):
     df = None
     while from_date <= to_date:
         try:
-            month = read_files_from_HDFS('{}/{}/{}.parquet'.format(config.HDFS_CLUSTER_URI + path.LISTENBRAINZ_DATA_DIRECTORY,
-                from_date.year, from_date.month))
+            month = read_files_from_HDFS('{}/{}/{}.parquet'.format(dest_path, from_date.year, from_date.month))
             df = df.union(month) if df else month
         except PathNotFoundException as err:
             current_app.logger.warning('{}\nFetching file for next date...'.format(err))
@@ -194,7 +193,7 @@ def save_parquet(df, path):
             path (str): Path in HDFS to save the dataframe.
     """
     try:
-        df.write.format('parquet').save(path, mode='overwrite')
+        df.write.format('parquet').save(config.HDFS_CLUSTER_URI + path, mode='overwrite')
     except Py4JJavaError as err:
         raise FileNotSavedException(err.java_exception, path)
 
@@ -234,4 +233,6 @@ def get_status(path):
         Note: Caller is responsible for initializing HDFS connection.
     """
     status = hdfs_connection.client.status(path)
-    return status
+    if status:
+        return True
+    return False
