@@ -21,6 +21,9 @@ class CreateDataframeTestclass(unittest.TestCase):
     def setUpClass(cls):
         listenbrainz_spark.init_test_session('spark-test-run-{}'.format(str(uuid.uuid4())))
         hdfs_connection.init_hdfs(config.HDFS_HTTP_URI)
+        cls.app = utils.create_app()
+        cls.app_context = cls.app.app_context()
+        cls.app_context.push()
         cls.upload_test_listen_to_HDFS()
         cls.upload_test_mapping_to_HDFS()
         cls.upload_test_mapped_listens_to_HDFS()
@@ -28,6 +31,7 @@ class CreateDataframeTestclass(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         utils.delete_dir('/', recursive=True)
+        cls.app_context.pop()
         listenbrainz_spark.context.stop()
 
     @classmethod
@@ -40,7 +44,7 @@ class CreateDataframeTestclass(unittest.TestCase):
             "recording_msid": "cb6985cd-cc71-4d59-b4fb-2e72796af741", "tags": [], "listened_at": DATE
         }
 
-        test_listens_df = utils.create_dataframe(schema.convert_to_spark_json(test_listen), schema.listen_schema)
+        test_listens_df = utils.create_dataframe([schema.convert_to_spark_json(test_listen)], schema.listen_schema)
         utils.save_parquet(test_listens_df, LISTENS_PATH + '{}/{}.parquet'.format(year, month))
 
     @classmethod
@@ -49,7 +53,7 @@ class CreateDataframeTestclass(unittest.TestCase):
             ,"mb_recording_gid":"3acb406f-c716-45f8-a8bd-96ca3939c2e5","msb_artist_msid":"a36d6fc9-49d0-4789-a7dd-a2b72369ca45",
             "mb_artist_gids":["181c4177-f33a-441d-b15d-910acaf18b07"],"mb_artist_credit_id":2157963}
 
-        test_mapping_df = utils.create_dataframe(schema.convert_mapping_to_row(test_mapping), schema.mapping_schema)
+        test_mapping_df = utils.create_dataframe([schema.convert_mapping_to_row(test_mapping)], schema.mapping_schema)
         utils.save_parquet(test_mapping_df, MAPPING_PATH)
 
     @classmethod
@@ -73,7 +77,7 @@ class CreateDataframeTestclass(unittest.TestCase):
 
     def test_save_dataframe(self):
         path_ = '/test_df.parquet'
-        df = utils.create_dataframe(Row(column1=1, column2=2), schema=None)
+        df = utils.create_dataframe([Row(column1=1, column2=2)], schema=None)
         dataframe.save_dataframe(df, path_)
 
         status = utils.get_status(path_)

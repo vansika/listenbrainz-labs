@@ -105,7 +105,7 @@ def train(training_data, validation_data, num_validation, ranks, lambdas, iterat
                 model_id, str(err.java_exception)), exc_info=True)
             sys.exit(-1)
         vt = '{:.2f}'.format((time() - t0) / 60)
-        model_metadata.append((model_id, mt, rank, '{:.1f}'.format(lmbda), iteration, "%.2f" % (validation_rmse), vt))
+        model_metadata.append((model_id, mt, rank, lmbda, iteration, "%.2f" % (validation_rmse), vt))
         if best_model is None or validation_rmse < best_model.error:
             best_model = Model(model=model, error=validation_rmse, rank=rank, lmbda=lmbda, iteration=iteration,
                 model_id=model_id, training_time=mt, rmse_time=vt)
