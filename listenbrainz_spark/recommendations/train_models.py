@@ -221,7 +221,7 @@ def main():
         save_training_html(time_, num_training, num_validation, num_test, model_metadata, best_model_metadata, ti,
             models_training_time)
 
-    # Save best model id to a JSON file
+    # Save best model id to a JSON file.
     metadata_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'recommendation-metadata.json')
     with open(metadata_file_path, 'r') as f:
         recommendation_metadata = json.load(f)
