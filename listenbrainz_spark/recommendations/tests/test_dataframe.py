@@ -3,6 +3,7 @@ import unittest
 from datetime import datetime
 
 import listenbrainz_spark
+from listenbrainz_spark.tests import SparkTestCase
 import listenbrainz_spark.recommendations.create_dataframes as dataframe
 from listenbrainz_spark import schema, utils, config, path, hdfs_connection
 
@@ -15,24 +16,19 @@ MAPPED_LISTENS_PATH = '/test/mapped_listens.parquet'
 
 DATE = datetime.utcnow()
 
-class CreateDataframeTestclass(unittest.TestCase):
+class CreateDataframeTestclass(SparkTestCase):
 
     @classmethod
     def setUpClass(cls):
-        listenbrainz_spark.init_test_session('spark-test-run-{}'.format(str(uuid.uuid4())))
-        hdfs_connection.init_hdfs(config.HDFS_HTTP_URI)
-        cls.app = utils.create_app()
-        cls.app_context = cls.app.app_context()
-        cls.app_context.push()
+        super().setUpClass()
         cls.upload_test_listen_to_HDFS()
         cls.upload_test_mapping_to_HDFS()
         cls.upload_test_mapped_listens_to_HDFS()
 
     @classmethod
     def tearDownClass(cls):
-        utils.delete_dir('/', recursive=True)
-        cls.app_context.pop()
-        listenbrainz_spark.context.stop()
+        super().delete_dir()
+        super().tearDownClass()
 
     @classmethod
     def upload_test_listen_to_HDFS(cls):
@@ -80,7 +76,7 @@ class CreateDataframeTestclass(unittest.TestCase):
         df = utils.create_dataframe([Row(column1=1, column2=2)], schema=None)
         dataframe.save_dataframe(df, path_)
 
-        status = utils.get_status(path_)
+        status = utils.path_exists(path_)
         self.assertTrue(status)
 
     def test_get_mapped_artist_and_recording_mbids(self):
@@ -93,7 +89,7 @@ class CreateDataframeTestclass(unittest.TestCase):
             'release_name', 'tags', 'track_name', 'user_name', 'mb_artist_credit_id', 'mb_artist_gids', 'mb_recording_gid',
              'msb_artist_msid', 'msb_recording_msid']
         self.assertEqual(complete_listen_col, mapped_df.columns)
-        status = utils.get_status(path.MAPPED_LISTENS)
+        status = utils.path_exists(path.MAPPED_LISTENS)
         self.assertTrue(status)
 
     def test_get_users_dataframe(self):
@@ -104,7 +100,7 @@ class CreateDataframeTestclass(unittest.TestCase):
         self.assertEqual(['user_name', 'user_id'], users_df.columns)
         self.assertEqual(metadata['users_count'], users_df.count())
 
-        status = utils.get_status(path.USERS_DATAFRAME_PATH)
+        status = utils.path_exists(path.USERS_DATAFRAME_PATH)
         self.assertTrue(status)
 
     def test_get_recordings_dataframe(self):
@@ -115,7 +111,7 @@ class CreateDataframeTestclass(unittest.TestCase):
         self.assertEqual(['mb_recording_gid', 'mb_artist_credit_id', 'recording_id'], recordings_df.columns)
         self.assertEqual(metadata['recordings_count'], 1)
 
-        status = utils.get_status(path.RECORDINGS_DATAFRAME_PATH)
+        status = utils.path_exists(path.RECORDINGS_DATAFRAME_PATH)
         self.assertTrue(status)
 
     def test_get_listens_df(self):
@@ -138,7 +134,7 @@ class CreateDataframeTestclass(unittest.TestCase):
         self.assertEqual(['user_id', 'recording_id', 'count'], playcounts_df.columns)
         self.assertEqual(metadata['playcounts_count'], playcounts_df.count())
 
-        status = utils.get_status(path.PLAYCOUNTS_DATAFRAME_PATH)
+        status = utils.path_exists(path.PLAYCOUNTS_DATAFRAME_PATH)
         self.assertTrue(status)
 
     def test_generate_best_model_id(self):
@@ -152,5 +148,5 @@ class CreateDataframeTestclass(unittest.TestCase):
             'recordings_count': 1, 'updated': True, 'users_count': 1
         }
         dataframe.save_dataframe_metadata_to_HDFS(metadata)
-        status = utils.get_status(path.MODEL_METADATA)
+        status = utils.path_exists(path.MODEL_METADATA)
         self.assertTrue(status)

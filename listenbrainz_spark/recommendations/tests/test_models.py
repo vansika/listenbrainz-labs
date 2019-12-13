@@ -2,6 +2,7 @@ import uuid
 import unittest
 
 import listenbrainz_spark
+from listenbrainz_spark.tests import SparkTestCase
 from listenbrainz_spark import utils, config, hdfs_connection
 import listenbrainz_spark.recommendations.train_models as model
 
@@ -11,22 +12,17 @@ from pyspark.sql.types import *
 TEST_PLAYCOUNTS_PATH = '/tests/playcounts.parquet'
 PLAYCOUNTS_COUNT = 100
 
-class TrainModelsTestClass(unittest.TestCase):
+class TrainModelsTestClass(SparkTestCase):
 
     @classmethod
     def setUpClass(cls):
-        listenbrainz_spark.init_test_session('spark-test-run-{}'.format(str(uuid.uuid4())))
-        hdfs_connection.init_hdfs(config.HDFS_HTTP_URI)
-        cls.app = utils.create_app()
-        cls.app_context = cls.app.app_context()
-        cls.app_context.push()
+        super().setUpClass()
         cls.upload_test_playcounts()
 
     @classmethod
     def tearDownClass(cls):
-        utils.delete_dir('/', recursive=True)
-        cls.app_context.pop()
-        listenbrainz_spark.context.stop()
+        super().delete_dir()
+        super().tearDownClass()
 
     @classmethod
     def upload_test_playcounts(cls):
