@@ -251,5 +251,3 @@ def hdfs_walk(path, depth=0):
         return walk
     except HdfsError as err:
         raise PathNotFoundException(str(err), path)
-
-

@@ -12,11 +12,10 @@ class UtilsTestCase(SparkTestCase):
     # use path_ as prefix for all paths in this class.
     path_ = '/test'
 
-    def setUp(self):
-        pass
-
     def tearDown(self):
-        utils.delete_dir(self.path_, recursive=True)
+        path_found = utils.path_exists(self.path_)
+        if path_found:
+            utils.delete_dir(self.path_, recursive=True)
 
     def test_append_dataframe(self):
         hdfs_path = self.path_ + '/test_df.parquet'
@@ -49,8 +48,6 @@ class UtilsTestCase(SparkTestCase):
         utils.delete_dir(self.path_)
         status = utils.path_exists(self.path_)
         self.assertFalse(status)
-        # for tearDown method.
-        utils.create_dir(self.path_)
 
     def test_get_listens(self):
         from_date = datetime(2019, 10, 1)

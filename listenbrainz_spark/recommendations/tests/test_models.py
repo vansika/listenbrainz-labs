@@ -7,12 +7,12 @@ from listenbrainz_spark import utils, config, hdfs_connection
 import listenbrainz_spark.recommendations.train_models as model
 
 from pyspark.sql import Row
-from pyspark.sql.types import *
+from pyspark.sql.types import StructType, StructField, IntegerType
 
 TEST_PLAYCOUNTS_PATH = '/tests/playcounts.parquet'
 PLAYCOUNTS_COUNT = 100
 
-class TrainModelsTestClass(SparkTestCase):
+class TrainModelsTestCase(SparkTestCase):
 
     @classmethod
     def setUpClass(cls):
