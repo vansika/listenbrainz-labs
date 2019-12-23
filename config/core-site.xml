@@ -4,4 +4,12 @@
         <name>fs.defaultFS</name>
         <value>hdfs://hadoop-master:9000/</value>
     </property>
+    <property>
+    	<name>fs.trash.interval</name>
+    	<value>3</value>
+	</property>
+	<property>
+    	<name>fs.trash.checkpoint.interval</name>
+    	<value>1</value>
+	</property>
 </configuration>
