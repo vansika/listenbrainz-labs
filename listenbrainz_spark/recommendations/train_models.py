@@ -147,6 +147,21 @@ def save_training_html(time_, num_training, num_validation, num_test, model_meta
     }
     save_html(model_html, context, 'model.html')
 
+def save_model(dest_path, model_id, model):
+    """ Save model to HDFS.
+
+        Args:
+            dest_path (str): HDFS path to save model.
+            model_id (str): Model Identification string.
+            model : Model to save.
+    """
+    try:
+        model.model.save(listenbrainz_spark.context, config.HDFS_CLUSTER_URI + dest_path)
+    except Py4JJavaError as err:
+        current_app.logger.error('Unable to save best model "{}"\n{}. Aborting...'.format(model_id,
+            str(err.java_exception)), exc_info=True)
+        sys.exit(-1)
+
 def main():
     ti = time()
     time_ = defaultdict(dict)
@@ -182,7 +197,6 @@ def main():
 
     current_app.logger.info('Training models...')
     t0 = time()
-
     model, model_metadata, best_model_metadata = train(training_data, validation_data, num_validation, config.RANKS,
         config.LAMBDAS, config.ITERATIONS)
     models_training_time = '{:.2f}'.format((time() - t0) / 3600)
@@ -200,13 +214,8 @@ def main():
 
     current_app.logger.info('Saving model...')
     t0 = time()
-    metadata_file_path = os.path.join(path.DATA_DIR, best_model_metadata['model_id'])
-    try:
-        model.model.save(listenbrainz_spark.context, config.HDFS_CLUSTER_URI + metadata_file_path)
-    except Py4JJavaError as err:
-        current_app.logger.error('Unable to save best model "{}"\n{}. Aborting...'.format(best_model_metadata['model_id'],
-            str(err.java_exception)), exc_info=True)
-        sys.exit(-1)
+    model_save_path = os.path.join(path.DATA_DIR, best_model_metadata['model_id'])
+    save_model(model_save_path, best_model_metadata['model_id'], model)
     time_['save_model'] = '{:.2f}'.format((time() - t0) / 60)
 
     hdfs_connection.init_hdfs(config.HDFS_HTTP_URI)
