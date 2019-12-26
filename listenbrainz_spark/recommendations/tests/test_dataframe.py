@@ -16,11 +16,10 @@ MAPPED_LISTENS_PATH = '/test/mapped_listens.parquet'
 
 class CreateDataframeTestCase(SparkTestCase):
 
-    date = datetime.utcnow()
-
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.date = datetime.utcnow()
         cls.upload_test_listen_to_HDFS()
         cls.upload_test_mapping_to_HDFS()
         cls.upload_test_mapped_listens_to_HDFS()
